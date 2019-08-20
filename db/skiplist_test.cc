@@ -37,16 +37,25 @@ TEST(SkipTest, Empty) {
   Arena arena;
   Comparator cmp;
   SkipList<Key, Comparator> list(cmp, &arena);
-  ASSERT_TRUE(!list.Contains(10));
+
+  //ASSERT_TRUE(!list.Contains(10));
+  ASSERT_EQ(list.Contains(10), false); // dehao 
 
   SkipList<Key, Comparator>::Iterator iter(&list);
-  ASSERT_TRUE(!iter.Valid());
+  //ASSERT_TRUE(!iter.Valid());
+  ASSERT_EQ(iter.Valid(), false); // dehao
+
   iter.SeekToFirst();
-  ASSERT_TRUE(!iter.Valid());
+  //ASSERT_TRUE(!iter.Valid());
+  ASSERT_EQ(iter.Valid(), false); // dehao
+
   iter.Seek(100);
-  ASSERT_TRUE(!iter.Valid());
+  //ASSERT_TRUE(!iter.Valid());
+  ASSERT_EQ(iter.Valid(), false); // dehao
+
   iter.SeekToLast();
-  ASSERT_TRUE(!iter.Valid());
+  //ASSERT_TRUE(!iter.Valid());
+  ASSERT_EQ(iter.Valid(), false); // dehao
 }
 
 TEST(SkipTest, InsertAndLookup) {
@@ -54,9 +63,11 @@ TEST(SkipTest, InsertAndLookup) {
   const int R = 5000;
   Random rnd(1000);
   std::set<Key> keys;
+
   Arena arena;
   Comparator cmp;
   SkipList<Key, Comparator> list(cmp, &arena);
+
   for (int i = 0; i < N; i++) {
     Key key = rnd.Next() % R;
     if (keys.insert(key).second) {

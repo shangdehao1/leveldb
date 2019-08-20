@@ -9,6 +9,9 @@
 #include "util/logging.h"
 #include "util/testharness.h"
 
+// dehao
+#include "leveldb/env.h"
+
 namespace leveldb {
 
 class FileNameTest {};
@@ -36,11 +39,18 @@ TEST(FileNameTest, Parse) {
       {"LOG.old", 0, kInfoLogFile},
       {"18446744073709551615.log", 18446744073709551615ull, kLogFile},
   };
+
   for (int i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
     std::string f = cases[i].fname;
     ASSERT_TRUE(ParseFileName(f, &number, &type)) << f;
     ASSERT_EQ(cases[i].type, type) << f;
     ASSERT_EQ(cases[i].number, number) << f;
+
+    // ===== dehao =========
+    std::string temp = cases[i].fname;
+    ASSERT_EQ(ParseFileName(temp, &number, &type), true);
+    ASSERT_EQ(number, cases[i].number);
+    ASSERT_EQ(type, cases[i].type);
   }
 
   // Errors
@@ -124,6 +134,14 @@ TEST(FileNameTest, Construction) {
   ASSERT_TRUE(ParseFileName(fname.c_str() + 4, &number, &type));
   ASSERT_EQ(0, number);
   ASSERT_EQ(kInfoLogFile, type);
+}
+
+TEST(FileNameTest, set_current_file) {
+  Env* env = Env::Default();
+
+  SetCurrentFile(env, "shangdehao_db", 111);
+
+
 }
 
 }  // namespace leveldb

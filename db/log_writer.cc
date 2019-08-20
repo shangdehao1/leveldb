@@ -20,6 +20,7 @@ static void InitTypeCrc(uint32_t* type_crc) {
   }
 }
 
+// log file...sdh
 Writer::Writer(WritableFile* dest) : dest_(dest), block_offset_(0) {
   InitTypeCrc(type_crc_);
 }
@@ -100,7 +101,7 @@ Status Writer::EmitPhysicalRecord(RecordType t, const char* ptr,
   if (s.ok()) {
     s = dest_->Append(Slice(ptr, length));
     if (s.ok()) {
-      s = dest_->Flush();
+      s = dest_->Flush(); // flush pages cache to disk....sdh
     }
   }
   block_offset_ += kHeaderSize + length;

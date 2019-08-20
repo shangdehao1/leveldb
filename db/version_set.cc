@@ -768,7 +768,7 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
       descriptor_log_(nullptr),
       dummy_versions_(this),
       current_(nullptr) {
-  AppendVersion(new Version(this));
+  AppendVersion(new Version(this)); // ##
 }
 
 VersionSet::~VersionSet() {
@@ -785,7 +785,7 @@ void VersionSet::AppendVersion(Version* v) {
   if (current_ != nullptr) {
     current_->Unref();
   }
-  current_ = v;
+  current_ = v; // ##
   v->Ref();
 
   // Append to linked list
@@ -796,6 +796,8 @@ void VersionSet::AppendVersion(Version* v) {
 }
 
 Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
+
+  // dehao : edit VersionEdit
   if (edit->has_log_number_) {
     assert(edit->log_number_ >= log_number_);
     assert(edit->log_number_ < next_file_number_);
@@ -810,12 +812,15 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
   edit->SetNextFile(next_file_number_);
   edit->SetLastSequence(last_sequence_);
 
+  // dehao : new version
   Version* v = new Version(this);
   {
     Builder builder(this, current_);
     builder.Apply(edit);
     builder.SaveTo(v);
   }
+
+  // dehao : determine next compaction level in new version
   Finalize(v);
 
   // Initialize new descriptor log file if necessary by creating
@@ -831,7 +836,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
     s = env_->NewWritableFile(new_manifest_file, &descriptor_file_);
     if (s.ok()) {
       descriptor_log_ = new log::Writer(descriptor_file_);
-      s = WriteSnapshot(descriptor_log_);
+      s = WriteSnapshot(descriptor_log_); // ##
     }
   }
 
@@ -839,11 +844,11 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
   {
     mu->Unlock();
 
-    // Write new record to MANIFEST log
+    // dehao: Write new record to MANIFEST file
     if (s.ok()) {
       std::string record;
       edit->EncodeTo(&record);
-      s = descriptor_log_->AddRecord(record);
+      s = descriptor_log_->AddRecord(record); // ###
       if (s.ok()) {
         s = descriptor_file_->Sync();
       }
@@ -863,7 +868,8 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
 
   // Install the new version
   if (s.ok()) {
-    AppendVersion(v);
+    // dehao : change current pointer to the new version.
+    AppendVersion(v); // ##
     log_number_ = edit->log_number_;
     prev_log_number_ = edit->prev_log_number_;
   } else {
@@ -886,6 +892,7 @@ Status VersionSet::Recover(bool* save_manifest) {
     void Corruption(size_t bytes, const Status& s) override {
       if (this->status->ok()) *this->status = s;
     }
+
   };
 
   // Read "CURRENT" file, which contains a pointer to the current manifest file
@@ -901,7 +908,7 @@ Status VersionSet::Recover(bool* save_manifest) {
 
   std::string dscname = dbname_ + "/" + current;
   SequentialFile* file;
-  s = env_->NewSequentialFile(dscname, &file);
+  s = env_->NewSequentialFile(dscname, &file); // dehao : open files.
   if (!s.ok()) {
     if (s.IsNotFound()) {
       return Status::Corruption("CURRENT points to a non-existent file",
@@ -918,18 +925,20 @@ Status VersionSet::Recover(bool* save_manifest) {
   uint64_t last_sequence = 0;
   uint64_t log_number = 0;
   uint64_t prev_log_number = 0;
-  Builder builder(this, current_);
+  Builder builder(this, current_); // 
 
   {
     LogReporter reporter;
     reporter.status = &s;
+    // dehao : create reader for manifest file. 
     log::Reader reader(file, &reporter, true /*checksum*/,
                        0 /*initial_offset*/);
     Slice record;
     std::string scratch;
+    // dehao : reading versionEdit from manifest file.
     while (reader.ReadRecord(&record, &scratch) && s.ok()) {
       VersionEdit edit;
-      s = edit.DecodeFrom(record);
+      s = edit.DecodeFrom(record); // ##
       if (s.ok()) {
         if (edit.has_comparator_ &&
             edit.comparator_ != icmp_.user_comparator()->Name()) {
@@ -940,7 +949,7 @@ Status VersionSet::Recover(bool* save_manifest) {
       }
 
       if (s.ok()) {
-        builder.Apply(&edit);
+        builder.Apply(&edit); // ##
       }
 
       if (edit.has_log_number_) {
@@ -964,6 +973,7 @@ Status VersionSet::Recover(bool* save_manifest) {
       }
     }
   }
+
   delete file;
   file = nullptr;
 
@@ -986,10 +996,10 @@ Status VersionSet::Recover(bool* save_manifest) {
 
   if (s.ok()) {
     Version* v = new Version(this);
-    builder.SaveTo(v);
+    builder.SaveTo(v); // ##
     // Install recovered version
     Finalize(v);
-    AppendVersion(v);
+    AppendVersion(v); // ##
     manifest_file_number_ = next_file;
     next_file_number_ = next_file + 1;
     last_sequence_ = last_sequence;
@@ -1186,7 +1196,7 @@ int64_t VersionSet::MaxNextLevelOverlappingBytes() {
     for (size_t i = 0; i < current_->files_[level].size(); i++) {
       const FileMetaData* f = current_->files_[level][i];
       current_->GetOverlappingInputs(level + 1, &f->smallest, &f->largest,
-                                     &overlaps);
+                                     &overlaps); // ##
       const int64_t sum = TotalFileSize(overlaps);
       if (sum > result) {
         result = sum;
@@ -1276,24 +1286,24 @@ Compaction* VersionSet::PickCompaction() {
     level = current_->compaction_level_;
     assert(level >= 0);
     assert(level + 1 < config::kNumLevels);
-    c = new Compaction(options_, level);
+    c = new Compaction(options_, level); // ##
 
     // Pick the first file that comes after compact_pointer_[level]
     for (size_t i = 0; i < current_->files_[level].size(); i++) {
       FileMetaData* f = current_->files_[level][i];
       if (compact_pointer_[level].empty() ||
           icmp_.Compare(f->largest.Encode(), compact_pointer_[level]) > 0) {
-        c->inputs_[0].push_back(f);
+        c->inputs_[0].push_back(f); // ##
         break;
       }
     }
     if (c->inputs_[0].empty()) {
       // Wrap-around to the beginning of the key space
-      c->inputs_[0].push_back(current_->files_[level][0]);
+      c->inputs_[0].push_back(current_->files_[level][0]); // ##
     }
   } else if (seek_compaction) {
     level = current_->file_to_compact_level_;
-    c = new Compaction(options_, level);
+    c = new Compaction(options_, level); // ##
     c->inputs_[0].push_back(current_->file_to_compact_);
   } else {
     return nullptr;
@@ -1309,6 +1319,8 @@ Compaction* VersionSet::PickCompaction() {
     // Note that the next call will discard the file we placed in
     // c->inputs_[0] earlier and replace it with an overlapping set
     // which will include the picked file.
+
+    // dehao : get all files which overlap with [smallest, largest)...
     current_->GetOverlappingInputs(0, &smallest, &largest, &c->inputs_[0]);
     assert(!c->inputs_[0].empty());
   }
@@ -1490,6 +1502,8 @@ Compaction* VersionSet::CompactRange(int level, const InternalKey* begin,
   SetupOtherInputs(c);
   return c;
 }
+
+// ================
 
 Compaction::Compaction(const Options* options, int level)
     : level_(level),

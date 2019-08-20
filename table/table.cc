@@ -42,6 +42,7 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
     return Status::Corruption("file is too short to be an sstable");
   }
 
+  // dehao : resolve footer
   char footer_space[Footer::kEncodedLength];
   Slice footer_input;
   Status s = file->Read(size - Footer::kEncodedLength, Footer::kEncodedLength,
@@ -53,13 +54,14 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
   if (!s.ok()) return s;
 
   // Read the index block
+  // dehao : resovle index block
   BlockContents index_block_contents;
   if (s.ok()) {
     ReadOptions opt;
     if (options.paranoid_checks) {
       opt.verify_checksums = true;
     }
-    s = ReadBlock(file, opt, footer.index_handle(), &index_block_contents);
+    s = ReadBlock(file, opt, footer.index_handle(), &index_block_contents); // ##
   }
 
   if (s.ok()) {
@@ -70,7 +72,7 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
     rep->options = options;
     rep->file = file;
     rep->metaindex_handle = footer.metaindex_handle();
-    rep->index_block = index_block;
+    rep->index_block = index_block; // ##
     rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
     rep->filter_data = nullptr;
     rep->filter = nullptr;

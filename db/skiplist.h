@@ -94,7 +94,7 @@ class SkipList {
 
    private:
     const SkipList* list_;
-    Node* node_;
+    Node* node_; // ##
     // Intentionally copyable
   };
 
@@ -186,6 +186,8 @@ typename SkipList<Key, Comparator>::Node* SkipList<Key, Comparator>::NewNode(
   return new (node_memory) Node(key);
 }
 
+// =================
+
 template <typename Key, class Comparator>
 inline SkipList<Key, Comparator>::Iterator::Iterator(const SkipList* list) {
   list_ = list;
@@ -237,6 +239,8 @@ inline void SkipList<Key, Comparator>::Iterator::SeekToLast() {
     node_ = nullptr;
   }
 }
+
+// ================== 
 
 template <typename Key, class Comparator>
 int SkipList<Key, Comparator>::RandomHeight() {

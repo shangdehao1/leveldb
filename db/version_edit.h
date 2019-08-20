@@ -19,9 +19,16 @@ struct FileMetaData {
   FileMetaData() : refs(0), allowed_seeks(1 << 30), file_size(0) {}
 
   int refs;
+
+  // dehao : seek_compaction
   int allowed_seeks;  // Seeks allowed until compaction
+
+  // dehao : like pointer, file number can deduce sst file name. 
   uint64_t number;
-  uint64_t file_size;    // File size in bytes
+
+  // dehao : the sum of all sst file in level-i can determine whether need size_compaction
+  uint64_t file_size;    // File size in bytes 
+
   InternalKey smallest;  // Smallest internal key served by table
   InternalKey largest;   // Largest internal key served by table
 };
@@ -90,6 +97,7 @@ class VersionEdit {
   uint64_t prev_log_number_;
   uint64_t next_file_number_;
   SequenceNumber last_sequence_;
+
   bool has_comparator_;
   bool has_log_number_;
   bool has_prev_log_number_;
