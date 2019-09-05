@@ -1,7 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #include "db/version_set.h"
 
 #include <stdio.h>
@@ -105,6 +101,8 @@ int FindFile(const InternalKeyComparator& icmp,
   return right;
 }
 
+
+// dehao : true : f->smallest.user_key <  f->largest.user_key < user_Key
 static bool AfterFile(const Comparator* ucmp, const Slice* user_key,
                       const FileMetaData* f) {
   // null user_key occurs before all keys and is therefore never after *f
@@ -112,6 +110,7 @@ static bool AfterFile(const Comparator* ucmp, const Slice* user_key,
           ucmp->Compare(*user_key, f->largest.user_key()) > 0);
 }
 
+// dehao : true : user_key < f->smallest.user_key < f->largest.user_key
 static bool BeforeFile(const Comparator* ucmp, const Slice* user_key,
                        const FileMetaData* f) {
   // null user_key occurs after all keys and is therefore never before *f
@@ -119,6 +118,7 @@ static bool BeforeFile(const Comparator* ucmp, const Slice* user_key,
           ucmp->Compare(*user_key, f->smallest.user_key()) < 0);
 }
 
+// dehao : check if there is file overlapping with range
 bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
                            bool disjoint_sorted_files,
                            const std::vector<FileMetaData*>& files,
@@ -925,14 +925,13 @@ Status VersionSet::Recover(bool* save_manifest) {
   uint64_t last_sequence = 0;
   uint64_t log_number = 0;
   uint64_t prev_log_number = 0;
-  Builder builder(this, current_); // 
+  Builder builder(this, current_);
 
   {
     LogReporter reporter;
     reporter.status = &s;
     // dehao : create reader for manifest file. 
-    log::Reader reader(file, &reporter, true /*checksum*/,
-                       0 /*initial_offset*/);
+    log::Reader reader(file, &reporter, true, 0);
     Slice record;
     std::string scratch;
     // dehao : reading versionEdit from manifest file.
@@ -1254,6 +1253,7 @@ Iterator* VersionSet::MakeInputIterator(Compaction* c) {
   int num = 0;
   for (int which = 0; which < 2; which++) {
     if (!c->inputs_[which].empty()) {
+      // dehao : level-0 
       if (c->level() + which == 0) {
         const std::vector<FileMetaData*>& files = c->inputs_[which];
         for (size_t i = 0; i < files.size(); i++) {
@@ -1568,8 +1568,7 @@ bool Compaction::ShouldStopBefore(const Slice& internal_key) {
   const InternalKeyComparator* icmp = &vset->icmp_;
   while (grandparent_index_ < grandparents_.size() &&
          icmp->Compare(internal_key,
-                       grandparents_[grandparent_index_]->largest.Encode()) >
-             0) {
+                       grandparents_[grandparent_index_]->largest.Encode()) > 0) {
     if (seen_key_) {
       overlapped_bytes_ += grandparents_[grandparent_index_]->file_size;
     }

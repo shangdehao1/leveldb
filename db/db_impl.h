@@ -1,7 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #ifndef STORAGE_LEVELDB_DB_DB_IMPL_H_
 #define STORAGE_LEVELDB_DB_DB_IMPL_H_
 
@@ -200,6 +196,7 @@ class DBImpl : public DB {
   // Have we encountered a background error in paranoid mode?
   Status bg_error_ GUARDED_BY(mutex_);
 
+  // dehao : stats commpaction performance : read / write
   CompactionStats stats_[config::kNumLevels] GUARDED_BY(mutex_);
 };
 

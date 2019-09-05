@@ -1,7 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #include "table/format.h"
 
 #include "leveldb/env.h"
@@ -85,6 +81,7 @@ Status ReadBlock(RandomAccessFile* file, const ReadOptions& options,
   // Check the crc of the type and the block contents
   const char* data = contents.data();  // Pointer to where Read put the data
   if (options.verify_checksums) {
+    // dehao : the last 4 bytes is CRC
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
     const uint32_t actual = crc32c::Value(data, n + 1);
     if (actual != crc) {

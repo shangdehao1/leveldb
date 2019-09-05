@@ -1,7 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #include "table/merger.h"
 
 #include "leveldb/comparator.h"
@@ -182,7 +178,7 @@ Iterator* NewMergingIterator(const Comparator* comparator, Iterator** children,
   if (n == 0) {
     return NewEmptyIterator();
   } else if (n == 1) {
-    return children[0];
+    return children[0]; // ##
   } else {
     return new MergingIterator(comparator, children, n);
   }

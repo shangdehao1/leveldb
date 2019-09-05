@@ -1,7 +1,3 @@
-// Copyright (c) 2013 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #include "db/db_impl.h"
 #include "leveldb/cache.h"
 #include "leveldb/db.h"
@@ -34,6 +30,7 @@ class AutoCompactTest {
     return std::string(buf);
   }
 
+  // dehao : disk space size betwens keys.
   uint64_t Size(const Slice& start, const Slice& limit) {
     Range r(start, limit);
     uint64_t size;
@@ -89,11 +86,17 @@ void AutoCompactTest::DoReads(int n) {
     // Wait a little bit to allow any triggered compactions to complete.
     Env::Default()->SleepForMicroseconds(1000000);
     uint64_t size = Size(Key(0), Key(n));
+
+    // 1024 * 1024 ==> 1048576
     fprintf(stderr, "iter %3d => %7.3f MB [other %7.3f MB]\n", read + 1,
             size / 1048576.0, Size(Key(n), Key(kCount)) / 1048576.0);
     if (size <= initial_size / 10) {
       break;
     }
+
+    // dehao : if we enable this if-statement, we can trigger compaction.
+    // if (size == 0) break;
+
   }
 
   // Verify that the size of the key space not touched by the reads
@@ -104,7 +107,6 @@ void AutoCompactTest::DoReads(int n) {
 }
 
 TEST(AutoCompactTest, ReadAll) { DoReads(kCount); }
-
 TEST(AutoCompactTest, ReadHalf) { DoReads(kCount / 2); }
 
 }  // namespace leveldb

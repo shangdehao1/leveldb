@@ -1,7 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #include "db/version_set.h"
 #include "util/logging.h"
 #include "util/testharness.h"
@@ -51,12 +47,14 @@ class FindFileTest {
 };
 
 TEST(FindFileTest, Empty) {
-  ASSERT_EQ(0, Find("foo"));
-  ASSERT_TRUE(!Overlaps("a", "z"));
-  ASSERT_TRUE(!Overlaps(nullptr, "z"));
-  ASSERT_TRUE(!Overlaps("a", nullptr));
-  ASSERT_TRUE(!Overlaps(nullptr, nullptr));
+  ASSERT_EQ(Find("foo"), 0);
+  ASSERT_EQ(Overlaps("a", "z"), false);
+  ASSERT_EQ(Overlaps(nullptr, "z"), false);
+  ASSERT_EQ(Overlaps("a", nullptr), false);
+  ASSERT_EQ(Overlaps(nullptr, nullptr), false);
 }
+
+// ABCDEFGHIJKLMNOPQRSTUVWXYZ
 
 TEST(FindFileTest, Single) {
   Add("p", "q");
@@ -67,83 +65,96 @@ TEST(FindFileTest, Single) {
   ASSERT_EQ(1, Find("q1"));
   ASSERT_EQ(1, Find("z"));
 
-  ASSERT_TRUE(!Overlaps("a", "b"));
-  ASSERT_TRUE(!Overlaps("z1", "z2"));
-  ASSERT_TRUE(Overlaps("a", "p"));
-  ASSERT_TRUE(Overlaps("a", "q"));
-  ASSERT_TRUE(Overlaps("a", "z"));
-  ASSERT_TRUE(Overlaps("p", "p1"));
-  ASSERT_TRUE(Overlaps("p", "q"));
-  ASSERT_TRUE(Overlaps("p", "z"));
-  ASSERT_TRUE(Overlaps("p1", "p2"));
-  ASSERT_TRUE(Overlaps("p1", "z"));
-  ASSERT_TRUE(Overlaps("q", "q"));
-  ASSERT_TRUE(Overlaps("q", "q1"));
+  ASSERT_EQ(false, Overlaps("a", "b"));
+  ASSERT_EQ(false, Overlaps("z1", "z2"));
+  ASSERT_EQ(true, Overlaps("a", "p"));
+  ASSERT_EQ(true, Overlaps("a", "q"));
+  ASSERT_EQ(true, Overlaps("a", "z"));
+  ASSERT_EQ(true, Overlaps("p", "p1"));
+  ASSERT_EQ(true, Overlaps("p", "q"));
+  ASSERT_EQ(true, Overlaps("p", "z"));
+  ASSERT_EQ(true, Overlaps("p1", "p2"));
+  ASSERT_EQ(true, Overlaps("p1", "z"));
+  ASSERT_EQ(true, Overlaps("q", "q"));
+  ASSERT_EQ(true, Overlaps("q", "q1"));
 
-  ASSERT_TRUE(!Overlaps(nullptr, "j"));
-  ASSERT_TRUE(!Overlaps("r", nullptr));
-  ASSERT_TRUE(Overlaps(nullptr, "p"));
-  ASSERT_TRUE(Overlaps(nullptr, "p1"));
-  ASSERT_TRUE(Overlaps("q", nullptr));
-  ASSERT_TRUE(Overlaps(nullptr, nullptr));
+  ASSERT_EQ(false, Overlaps(nullptr, "j"));
+  ASSERT_EQ(false, Overlaps("r", nullptr));
+  ASSERT_EQ(true, Overlaps(nullptr, "p"));
+  ASSERT_EQ(true, Overlaps(nullptr, "p1"));
+  ASSERT_EQ(true, Overlaps("q", nullptr));
+  ASSERT_EQ(true, Overlaps(nullptr, nullptr));
 }
 
 TEST(FindFileTest, Multiple) {
+
+  // [150, 200] [200, 250] [300, 350] [400, 450]
   Add("150", "200");
   Add("200", "250");
   Add("300", "350");
   Add("400", "450");
+
   ASSERT_EQ(0, Find("100"));
   ASSERT_EQ(0, Find("150"));
   ASSERT_EQ(0, Find("151"));
   ASSERT_EQ(0, Find("199"));
   ASSERT_EQ(0, Find("200"));
+
   ASSERT_EQ(1, Find("201"));
   ASSERT_EQ(1, Find("249"));
   ASSERT_EQ(1, Find("250"));
+
   ASSERT_EQ(2, Find("251"));
   ASSERT_EQ(2, Find("299"));
   ASSERT_EQ(2, Find("300"));
   ASSERT_EQ(2, Find("349"));
   ASSERT_EQ(2, Find("350"));
+
   ASSERT_EQ(3, Find("351"));
   ASSERT_EQ(3, Find("400"));
   ASSERT_EQ(3, Find("450"));
+
   ASSERT_EQ(4, Find("451"));
 
-  ASSERT_TRUE(!Overlaps("100", "149"));
-  ASSERT_TRUE(!Overlaps("251", "299"));
-  ASSERT_TRUE(!Overlaps("451", "500"));
-  ASSERT_TRUE(!Overlaps("351", "399"));
+  // ----------- 
 
-  ASSERT_TRUE(Overlaps("100", "150"));
-  ASSERT_TRUE(Overlaps("100", "200"));
-  ASSERT_TRUE(Overlaps("100", "300"));
-  ASSERT_TRUE(Overlaps("100", "400"));
-  ASSERT_TRUE(Overlaps("100", "500"));
-  ASSERT_TRUE(Overlaps("375", "400"));
-  ASSERT_TRUE(Overlaps("450", "450"));
-  ASSERT_TRUE(Overlaps("450", "500"));
+  ASSERT_EQ(false, Overlaps("100", "149"));
+  ASSERT_EQ(false, Overlaps("251", "299"));
+  ASSERT_EQ(false, Overlaps("451", "500"));
+  ASSERT_EQ(false, Overlaps("351", "399"));
+
+  ASSERT_EQ(true, Overlaps("100", "150"));
+  ASSERT_EQ(true, Overlaps("100", "200"));
+  ASSERT_EQ(true, Overlaps("100", "300"));
+  ASSERT_EQ(true, Overlaps("100", "400"));
+  ASSERT_EQ(true, Overlaps("100", "500"));
+  ASSERT_EQ(true, Overlaps("375", "400"));
+  ASSERT_EQ(true, Overlaps("450", "450"));
+  ASSERT_EQ(true, Overlaps("450", "500"));
 }
 
 TEST(FindFileTest, MultipleNullBoundaries) {
+
+  // [150, 200] [200, 250] [300, 350] [400, 450]
   Add("150", "200");
   Add("200", "250");
   Add("300", "350");
   Add("400", "450");
-  ASSERT_TRUE(!Overlaps(nullptr, "149"));
-  ASSERT_TRUE(!Overlaps("451", nullptr));
-  ASSERT_TRUE(Overlaps(nullptr, nullptr));
-  ASSERT_TRUE(Overlaps(nullptr, "150"));
-  ASSERT_TRUE(Overlaps(nullptr, "199"));
-  ASSERT_TRUE(Overlaps(nullptr, "200"));
-  ASSERT_TRUE(Overlaps(nullptr, "201"));
-  ASSERT_TRUE(Overlaps(nullptr, "400"));
-  ASSERT_TRUE(Overlaps(nullptr, "800"));
-  ASSERT_TRUE(Overlaps("100", nullptr));
-  ASSERT_TRUE(Overlaps("200", nullptr));
-  ASSERT_TRUE(Overlaps("449", nullptr));
-  ASSERT_TRUE(Overlaps("450", nullptr));
+
+  ASSERT_EQ(false, Overlaps(nullptr, "149"));
+  ASSERT_EQ(false, Overlaps("451", nullptr));
+
+  ASSERT_EQ(true, Overlaps(nullptr, nullptr));
+  ASSERT_EQ(true, Overlaps(nullptr, "150"));
+  ASSERT_EQ(true, Overlaps(nullptr, "199"));
+  ASSERT_EQ(true, Overlaps(nullptr, "200"));
+  ASSERT_EQ(true, Overlaps(nullptr, "201"));
+  ASSERT_EQ(true, Overlaps(nullptr, "400"));
+  ASSERT_EQ(true, Overlaps(nullptr, "800"));
+  ASSERT_EQ(true, Overlaps("100", nullptr));
+  ASSERT_EQ(true, Overlaps("200", nullptr));
+  ASSERT_EQ(true, Overlaps("449", nullptr));
+  ASSERT_EQ(true, Overlaps("450", nullptr));
 }
 
 TEST(FindFileTest, OverlapSequenceChecks) {

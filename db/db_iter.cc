@@ -1,7 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #include "db/db_iter.h"
 
 #include "db/db_impl.h"
@@ -178,6 +174,7 @@ void DBIter::FindNextUserEntry(bool skipping, std::string* skip) {
   // Loop until we hit an acceptable entry to yield
   assert(iter_->Valid());
   assert(direction_ == kForward);
+
   do {
     ParsedInternalKey ikey;
     if (ParseKey(&ikey) && ikey.sequence <= sequence_) {
@@ -202,6 +199,7 @@ void DBIter::FindNextUserEntry(bool skipping, std::string* skip) {
     }
     iter_->Next();
   } while (iter_->Valid());
+
   saved_key_.clear();
   valid_ = false;
 }
@@ -260,7 +258,7 @@ void DBIter::FindPrevUserEntry() {
           saved_value_.assign(raw_value.data(), raw_value.size());
         }
       }
-      iter_->Prev();
+      iter_->Prev(); // ##
     } while (iter_->Valid());
   }
 
@@ -281,7 +279,7 @@ void DBIter::Seek(const Slice& target) {
   saved_key_.clear();
   AppendInternalKey(&saved_key_,
                     ParsedInternalKey(target, sequence_, kValueTypeForSeek));
-  iter_->Seek(saved_key_);
+  iter_->Seek(saved_key_); // ##
   if (iter_->Valid()) {
     FindNextUserEntry(false, &saved_key_ /* temporary storage */);
   } else {

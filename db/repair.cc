@@ -110,15 +110,15 @@ class Repairer {
     for (size_t i = 0; i < filenames.size(); i++) {
       if (ParseFileName(filenames[i], &number, &type)) {
         if (type == kDescriptorFile) {
-          manifests_.push_back(filenames[i]);
+          manifests_.push_back(filenames[i]); // ##
         } else {
           if (number + 1 > next_file_number_) {
             next_file_number_ = number + 1;
           }
           if (type == kLogFile) {
-            logs_.push_back(number);
+            logs_.push_back(number); // ##
           } else if (type == kTableFile) {
-            table_numbers_.push_back(number);
+            table_numbers_.push_back(number); // ##
           } else {
             // Ignore other files
           }
@@ -170,8 +170,7 @@ class Repairer {
     // corruptions cause entire commits to be skipped instead of
     // propagating bad information (like overly large sequence
     // numbers).
-    log::Reader reader(lfile, &reporter, false /*do not checksum*/,
-                       0 /*initial_offset*/);
+    log::Reader reader(lfile, &reporter, false, 0);
 
     // Read all the records and add to a memtable
     std::string scratch;
@@ -187,7 +186,7 @@ class Repairer {
         continue;
       }
       WriteBatchInternal::SetContents(&batch, record);
-      status = WriteBatchInternal::InsertInto(&batch, mem);
+      status = WriteBatchInternal::InsertInto(&batch, mem); // ##
       if (status.ok()) {
         counter += WriteBatchInternal::Count(&batch);
       } else {
@@ -203,7 +202,7 @@ class Repairer {
     FileMetaData meta;
     meta.number = next_file_number_++;
     Iterator* iter = mem->NewIterator();
-    status = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
+    status = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta); // ## 
     delete iter;
     mem->Unref();
     mem = nullptr;
@@ -220,7 +219,7 @@ class Repairer {
 
   void ExtractMetaData() {
     for (size_t i = 0; i < table_numbers_.size(); i++) {
-      ScanTable(table_numbers_[i]);
+      ScanTable(table_numbers_[i]); // ##
     }
   }
 
@@ -270,9 +269,13 @@ class Repairer {
       counter++;
       if (empty) {
         empty = false;
+        // dehao : the first entry is the smallest.
         t.meta.smallest.DecodeFrom(key);
       }
+      // dehao : new entry always is the largest currently.
       t.meta.largest.DecodeFrom(key);
+
+      // dehao : check if still is max sequence number.
       if (parsed.sequence > t.max_sequence) {
         t.max_sequence = parsed.sequence;
       }
@@ -285,7 +288,7 @@ class Repairer {
         (unsigned long long)t.meta.number, counter, status.ToString().c_str());
 
     if (status.ok()) {
-      tables_.push_back(t);
+      tables_.push_back(t); // ##
     } else {
       RepairTable(fname, t);  // RepairTable archives input file.
     }
@@ -394,9 +397,9 @@ class Repairer {
       }
 
       // Install new manifest
-      status = env_->RenameFile(tmp, DescriptorFileName(dbname_, 1));
+      status = env_->RenameFile(tmp, DescriptorFileName(dbname_, 1)); // ##
       if (status.ok()) {
-        status = SetCurrentFile(env_, dbname_, 1);
+        status = SetCurrentFile(env_, dbname_, 1); // ##
       } else {
         env_->DeleteFile(tmp);
       }

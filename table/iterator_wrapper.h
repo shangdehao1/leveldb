@@ -1,7 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #ifndef STORAGE_LEVELDB_TABLE_ITERATOR_WRAPPER_H_
 #define STORAGE_LEVELDB_TABLE_ITERATOR_WRAPPER_H_
 
@@ -14,11 +10,13 @@ namespace leveldb {
 // caches the valid() and key() results for an underlying iterator.
 // This can help avoid virtual function calls and also gives better
 // cache locality.
+
 class IteratorWrapper {
  public:
   IteratorWrapper() : iter_(nullptr), valid_(false) {}
   explicit IteratorWrapper(Iterator* iter) : iter_(nullptr) { Set(iter); }
   ~IteratorWrapper() { delete iter_; }
+
   Iterator* iter() const { return iter_; }
 
   // Takes ownership of "iter" and will delete it when destroyed, or
@@ -35,6 +33,7 @@ class IteratorWrapper {
 
   // Iterator interface methods
   bool Valid() const { return valid_; }
+
   Slice key() const {
     assert(Valid());
     return key_;
@@ -43,6 +42,7 @@ class IteratorWrapper {
     assert(Valid());
     return iter_->value();
   }
+
   // Methods below require iter() != nullptr
   Status status() const {
     assert(iter_);

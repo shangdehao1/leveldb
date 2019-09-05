@@ -1,6 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
 // BlockBuilder generates blocks where keys are prefix-compressed:
 //
@@ -73,6 +70,8 @@ void BlockBuilder::Add(const Slice& key, const Slice& value) {
   Slice last_key_piece(last_key_);
   assert(!finished_);
   assert(counter_ <= options_->block_restart_interval);
+
+  // dehao : check order.
   assert(buffer_.empty()  // No values yet?
          || options_->comparator->Compare(key, last_key_piece) > 0);
   size_t shared = 0;
@@ -99,6 +98,7 @@ void BlockBuilder::Add(const Slice& key, const Slice& value) {
   buffer_.append(value.data(), value.size());
 
   // Update state
+  // dehao : how to compress the shared data ??????? 
   last_key_.resize(shared);
   last_key_.append(key.data() + shared, non_shared);
   assert(Slice(last_key_) == key);

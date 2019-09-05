@@ -1,7 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #include "db/dbformat.h"
 #include "util/logging.h"
 #include "util/testharness.h"
@@ -42,6 +38,8 @@ static void TestKey(const std::string& key, uint64_t seq, ValueType vt) {
 }
 
 class FormatTest {};
+
+// dehao : test encode and decode of internal code
 
 TEST(FormatTest, InternalKey_EncodeDecode) {
   const char* keys[] = {"", "k", "hello", "longggggggggggggggggggggg"};

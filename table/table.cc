@@ -1,7 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #include "leveldb/table.h"
 
 #include "leveldb/cache.h"
@@ -31,7 +27,8 @@ struct Table::Rep {
   FilterBlockReader* filter;
   const char* filter_data;
 
-  BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
+  // handle to metaindex_block: save from footer
+  BlockHandle metaindex_handle;
   Block* index_block;
 };
 
@@ -42,13 +39,14 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
     return Status::Corruption("file is too short to be an sstable");
   }
 
-  // dehao : resolve footer
+  // dehao : read fixed bytes from file tail.
   char footer_space[Footer::kEncodedLength];
   Slice footer_input;
   Status s = file->Read(size - Footer::kEncodedLength, Footer::kEncodedLength,
                         &footer_input, footer_space);
   if (!s.ok()) return s;
 
+  // dehao : decode Footer from fixed bytes.
   Footer footer;
   s = footer.DecodeFrom(&footer_input);
   if (!s.ok()) return s;
@@ -61,6 +59,7 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
     if (options.paranoid_checks) {
       opt.verify_checksums = true;
     }
+    // dehao : obtain all sequenial bytes except for compression type and crc.
     s = ReadBlock(file, opt, footer.index_handle(), &index_block_contents); // ##
   }
 

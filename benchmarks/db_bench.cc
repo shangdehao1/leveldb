@@ -1,10 +1,7 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <iostream>
 
 #include "leveldb/cache.h"
 #include "leveldb/db.h"
@@ -212,7 +209,9 @@ class Stats {
     seconds_ = (finish_ - start_) * 1e-6;
   }
 
-  void AddMessage(Slice msg) { AppendWithSpace(&message_, msg); }
+  void AddMessage(Slice msg) {
+    AppendWithSpace(&message_, msg); 
+  }
 
   void FinishedSingleOp() {
     if (FLAGS_histogram) {
@@ -338,15 +337,16 @@ class Benchmark {
   }
 
   void PrintWarnings() {
-#if defined(__GNUC__) && !defined(__OPTIMIZE__)
+    #if defined(__GNUC__) && !defined(__OPTIMIZE__)
     fprintf(
         stdout,
         "WARNING: Optimization is disabled: benchmarks unnecessarily slow\n");
-#endif
-#ifndef NDEBUG
+    #endif
+
+    #ifndef NDEBUG
     fprintf(stdout,
             "WARNING: Assertions are enabled; benchmarks unnecessarily slow\n");
-#endif
+    #endif
 
     // See if snappy is working by attempting to compress a compressible string
     const char text[] = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
@@ -362,7 +362,7 @@ class Benchmark {
     fprintf(stderr, "LevelDB:    version %d.%d\n", kMajorVersion,
             kMinorVersion);
 
-#if defined(__linux)
+    #if defined(__linux)
     time_t now = time(nullptr);
     fprintf(stderr, "Date:       %s", ctime(&now));  // ctime() adds newline
 
@@ -390,7 +390,7 @@ class Benchmark {
       fprintf(stderr, "CPU:        %d * %s\n", num_cpus, cpu_type.c_str());
       fprintf(stderr, "CPUCache:   %s\n", cache_size.c_str());
     }
-#endif
+    #endif
   }
 
  public:
@@ -446,7 +446,8 @@ class Benchmark {
       entries_per_batch_ = 1;
       write_options_ = WriteOptions();
 
-      void (Benchmark::*method)(ThreadState*) = nullptr;
+      // dehao : get benchmark method
+      void (Benchmark::*method)(ThreadState*) = nullptr; 
       bool fresh_db = false;
       int num_threads = FLAGS_threads;
 
@@ -470,7 +471,7 @@ class Benchmark {
       } else if (name == Slice("fillsync")) {
         fresh_db = true;
         num_ /= 1000;
-        write_options_.sync = true;
+        write_options_.sync = true; // ##
         method = &Benchmark::WriteRandom;
       } else if (name == Slice("fill100K")) {
         fresh_db = true;
@@ -533,7 +534,7 @@ class Benchmark {
       }
 
       if (method != nullptr) {
-        RunBenchmark(num_threads, name, method);
+        RunBenchmark(num_threads, name, method); // ## run method
       }
     }
   }
@@ -585,6 +586,8 @@ class Benchmark {
       arg[i].shared = &shared;
       arg[i].thread = new ThreadState(i);
       arg[i].thread->shared = &shared;
+
+      // dehao : create one thread to run benchmark
       g_env->StartThread(ThreadBody, &arg[i]);
     }
 
@@ -610,6 +613,8 @@ class Benchmark {
     }
     delete[] arg;
   }
+
+// ==================
 
   void Crc32c(ThreadState* thread) {
     // Checksum about 500MB of data total
@@ -704,9 +709,13 @@ class Benchmark {
     }
   }
 
-  void WriteSeq(ThreadState* thread) { DoWrite(thread, true); }
+  void WriteSeq(ThreadState* thread) {
+    DoWrite(thread, true); 
+  }
 
-  void WriteRandom(ThreadState* thread) { DoWrite(thread, false); }
+  void WriteRandom(ThreadState* thread) { 
+    DoWrite(thread, false); 
+  }
 
   void DoWrite(ThreadState* thread, bool seq) {
     if (num_ != FLAGS_num) {
@@ -914,11 +923,15 @@ class Benchmark {
 
 }  // namespace leveldb
 
+// ====================
+
 int main(int argc, char** argv) {
+
   FLAGS_write_buffer_size = leveldb::Options().write_buffer_size;
   FLAGS_max_file_size = leveldb::Options().max_file_size;
   FLAGS_block_size = leveldb::Options().block_size;
   FLAGS_open_files = leveldb::Options().max_open_files;
+
   std::string default_db_path;
 
   for (int i = 1; i < argc; i++) {
@@ -977,5 +990,6 @@ int main(int argc, char** argv) {
 
   leveldb::Benchmark benchmark;
   benchmark.Run();
+
   return 0;
 }

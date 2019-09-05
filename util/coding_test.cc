@@ -40,15 +40,15 @@ TEST(Coding, Fixed64) {
     uint64_t actual;
     actual = DecodeFixed64(p);
     ASSERT_EQ(v - 1, actual);
-    p += sizeof(uint64_t);
+    p += sizeof(uint64_t); // dehao: move pointer
 
     actual = DecodeFixed64(p);
     ASSERT_EQ(v + 0, actual);
-    p += sizeof(uint64_t);
+    p += sizeof(uint64_t); // dehao : move pointer
 
     actual = DecodeFixed64(p);
     ASSERT_EQ(v + 1, actual);
-    p += sizeof(uint64_t);
+    p += sizeof(uint64_t); // dehao : move pointer
   }
 }
 
@@ -63,6 +63,7 @@ TEST(Coding, EncodingOutput) {
   ASSERT_EQ(0x04, static_cast<int>(dst[3]));
 
   dst.clear();
+
   PutFixed64(&dst, 0x0807060504030201ull);
   ASSERT_EQ(8, dst.size());
   ASSERT_EQ(0x01, static_cast<int>(dst[0]));
@@ -79,7 +80,7 @@ TEST(Coding, Varint32) {
   std::string s;
   for (uint32_t i = 0; i < (32 * 32); i++) {
     uint32_t v = (i / 32) << (i % 32);
-    PutVarint32(&s, v);
+    PutVarint32(&s, v); // ##
   }
 
   const char* p = s.data();
@@ -88,7 +89,7 @@ TEST(Coding, Varint32) {
     uint32_t expected = (i / 32) << (i % 32);
     uint32_t actual;
     const char* start = p;
-    p = GetVarint32Ptr(p, limit, &actual);
+    p = GetVarint32Ptr(p, limit, &actual); // ##
     ASSERT_TRUE(p != nullptr);
     ASSERT_EQ(expected, actual);
     ASSERT_EQ(VarintLength(actual), p - start);
@@ -114,7 +115,7 @@ TEST(Coding, Varint64) {
 
   std::string s;
   for (size_t i = 0; i < values.size(); i++) {
-    PutVarint64(&s, values[i]);
+    PutVarint64(&s, values[i]); // ##
   }
 
   const char* p = s.data();

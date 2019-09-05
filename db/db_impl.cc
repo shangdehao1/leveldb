@@ -1,7 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 #include "db/db_impl.h"
 
 #include <stdint.h>
@@ -198,15 +194,17 @@ Status DBImpl::NewDB() {
     log::Writer log(file);
     std::string record;
     new_db.EncodeTo(&record);
-    s = log.AddRecord(record); // dehao : add one versionedit to manifest file.
+    // dehao : add one versionEdit to manifest file.
+    s = log.AddRecord(record);
     if (s.ok()) {
       s = file->Close();
     }
   }
   delete file;
   if (s.ok()) {
+    // dehao : create CURRENT file referred to manifest file.
     // Make "CURRENT" file that points to the new manifest file.
-    s = SetCurrentFile(env_, dbname_, 1); // dehao : create manifest file which point to manifest file.
+    s = SetCurrentFile(env_, dbname_, 1);
   } else {
     env_->DeleteFile(manifest);
   }
@@ -231,12 +229,12 @@ void DBImpl::DeleteObsoleteFiles() {
     return;
   }
 
+  // dehao : get file number from versionSet
   const uint64_t log_number = versions_->LogNumber();
   const uint64_t prev_log_number = versions_->PrevLogNumber();
   const uint64_t manifest_file_number = versions_->ManifestFileNumber();
 
-  // Make a set of all of the live files
-  // dehao : get all alive files from all version
+  // dehao : get all live files from all versions
   std::set<uint64_t> live = pending_outputs_;
   versions_->AddLiveFiles(&live); // ##
 
@@ -246,6 +244,8 @@ void DBImpl::DeleteObsoleteFiles() {
 
   // Unlock while deleting obsolete files
   mutex_.Unlock();
+
+  // dehao : analysis all file of directory.
   uint64_t number;
   FileType type;
   for (size_t i = 0; i < filenames.size(); i++) {
@@ -302,6 +302,7 @@ Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
     return s;
   }
 
+  // dehao : if current file exists, there is old data base.
   if (!env_->FileExists(CurrentFileName(dbname_))) {
     if (options_.create_if_missing) {
       s = NewDB(); // ## 3
@@ -830,6 +831,7 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   assert(compact->outfile != nullptr);
   assert(compact->builder != nullptr);
 
+  // dehao : get file number.
   const uint64_t output_number = compact->current_output()->number;
   assert(output_number != 0);
 
@@ -837,8 +839,10 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   Status s = input->status();
   const uint64_t current_entries = compact->builder->NumEntries();
   if (s.ok()) {
+    // dehao : finish to write sst file.
     s = compact->builder->Finish();
   } else {
+    // dehao : if there is some error in writing file, abandon it.
     compact->builder->Abandon();
   }
   const uint64_t current_bytes = compact->builder->FileSize();
@@ -910,6 +914,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     compact->smallest_snapshot = snapshots_.oldest()->sequence_number();
   }
 
+  // dehao : get iterator which can traversal all input files of compaction
   Iterator* input = versions_->MakeInputIterator(compact->compaction); // ##
 
   // Release mutex while we're actually doing the compaction work
@@ -938,7 +943,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     Slice key = input->key();
     if (compact->compaction->ShouldStopBefore(key) &&
         compact->builder != nullptr) {
-      status = FinishCompactionOutputFile(compact, input);
+      status = FinishCompactionOutputFile(compact, input); // ## ??? 
       if (!status.ok()) {
         break;
       }
@@ -979,7 +984,8 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
       last_sequence_for_key = ikey.sequence;
     }
-#if 0
+
+    #if 0
     Log(options_.info_log,
         "  Compact: %s, seq %d, type: %d %d, drop: %d, is_base: %d, "
         "%d smallest_snapshot: %d",
@@ -987,7 +993,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         (int)ikey.sequence, ikey.type, kTypeValue, drop,
         compact->compaction->IsBaseLevelForKey(ikey.user_key),
         (int)last_sequence_for_key, (int)compact->smallest_snapshot);
-#endif
+    #endif
 
     if (!drop) {
       // Open output file if necessary
@@ -997,10 +1003,14 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
           break;
         }
       }
+
+      // dehao : for the first entry of current sst file, write smallest.
       if (compact->builder->NumEntries() == 0) {
         compact->current_output()->smallest.DecodeFrom(key);
       }
+      // dehao : update the largest on every time.
       compact->current_output()->largest.DecodeFrom(key);
+
       compact->builder->Add(key, input->value());
 
       // Close output file if it is big enough
@@ -1043,7 +1053,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   stats_[compact->compaction->level() + 1].Add(stats);
 
   if (status.ok()) {
-    status = InstallCompactionResults(compact);
+    status = InstallCompactionResults(compact); // ##
   }
   if (!status.ok()) {
     RecordBackgroundError(status);
@@ -1085,13 +1095,17 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
 
   // Collect together all needed child iterators
   std::vector<Iterator*> list;
-  list.push_back(mem_->NewIterator());
+  list.push_back(mem_->NewIterator()); // ## 1
   mem_->Ref();
+
   if (imm_ != nullptr) {
-    list.push_back(imm_->NewIterator());
+    list.push_back(imm_->NewIterator()); // ## 2
     imm_->Ref();
   }
-  versions_->current()->AddIterators(options, &list);
+
+  versions_->current()->AddIterators(options, &list); // ## 3
+
+  // ##
   Iterator* internal_iter =
       NewMergingIterator(&internal_comparator_, &list[0], list.size());
   versions_->current()->Ref();
@@ -1486,14 +1500,18 @@ DB::~DB() = default;
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   *dbptr = nullptr;
 
-  DBImpl* impl = new DBImpl(options, dbname); // ##
+  // dehao : create new db
+  DBImpl* impl = new DBImpl(options, dbname);
 
   impl->mutex_.Lock();
   VersionEdit edit; // ##
   // Recover handles create_if_missing, error_if_exists
   bool save_manifest = false;
 
-  Status s = impl->Recover(&edit, &save_manifest); // ##
+  // dehao : try to recovery data from old diratory.
+  Status s = impl->Recover(&edit, &save_manifest);
+
+  // dehao : if new db, create log and manifest file.
   if (s.ok() && impl->mem_ == nullptr) {
     // Create new log and a corresponding memtable.
     uint64_t new_log_number = impl->versions_->NewFileNumber();

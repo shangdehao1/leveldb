@@ -1,6 +1,3 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "leveldb/table_builder.h"
 
@@ -37,12 +34,12 @@ struct TableBuilder::Rep {
 
   Options options;
   Options index_block_options;
-  WritableFile* file;
+  WritableFile* file; // dehao : the corresponding sst file
   uint64_t offset;
   Status status;
   BlockBuilder data_block;
   BlockBuilder index_block;
-  std::string last_key;
+  std::string last_key; // dehao : 1) judege if sorted 2) record it to index block
   int64_t num_entries;
   bool closed;  // Either Finish() or Abandon() has been called.
   FilterBlockBuilder* filter_block;
@@ -56,7 +53,7 @@ struct TableBuilder::Rep {
   // blocks.
   //
   // Invariant: r->pending_index_entry is true only if data_block is empty.
-  bool pending_index_entry;
+  bool pending_index_entry; // dehao : check if need to write meta record to index block.
   BlockHandle pending_handle;  // Handle to add to index block
 
   std::string compressed_output;
@@ -96,9 +93,11 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   assert(!r->closed);
   if (!ok()) return;
   if (r->num_entries > 0) {
+    // dehao : check if all data is coming in order
     assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
   }
 
+  // dehao : insert record into index_block when data_block is empty.
   if (r->pending_index_entry) {
     assert(r->data_block.empty());
     r->options.comparator->FindShortestSeparator(&r->last_key, key);
